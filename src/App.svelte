@@ -50,6 +50,7 @@
   let helper = "";
   let Clicked = false;
   let assigner: number[][] = [];
+  let clickStart:string;
   let dragged: string;
   let dragImg:CanvasImageSource
   width = window.innerWidth;
@@ -170,23 +171,41 @@
   }
 
   function handleClick() {
+    if(cstart===cend)
+    {
     if(!Clicked)
       {
         Clicked = true
+        clickStart = location
+        cstart = location
+        
         showMoves()
       }
       else
       {
         Clicked = false
-        moves = 0n
-        makeBoxes()
-        displayNormal()
+        if(clickStart!=location)
+        {
+          if(moves&stringToMap(location))
+    {
+      let start = stringToMap(clickStart)
+      let end = stringToMap(location)
+      for(let i = 2;i<=13;i++)
+      {
+        if(start&board[i])
+        {
+          board[i] = start^board[i]//Remove from prev state
+          board[i] = end | board[i]//Add new state
+          break;
+        }
       }
-    if (cstart === cend) {
-     
-    } else {
-      helper = ("Dragged from " + cstart + " to " + cend);
     }
+        }
+        moves = 0n
+        
+      }}
+      makeBoxes()
+      displayNormal()
   }
   function showMoves()
   {

@@ -1,20 +1,50 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import blackPawn from "./pieces/pawn-b.svg";
-  import blackKing from "./pieces/king-b.svg";
-  import blackQueen from "./pieces/queen-b.svg";
-  import blackRook from "./pieces/rook-b.svg";
-  import blackKnight from "./pieces/knight-b.svg";
-  import blackBishop from "./pieces/bishop-b.svg";
+  import blackPawnSrc from "./pieces/pawn-b.svg";
+  import blackKingSrc from "./pieces/king-b.svg";
+  import blackQueenSrc from "./pieces/queen-b.svg";
+  import blackRookSrc from "./pieces/rook-b.svg";
+  import blackKnightSrc from "./pieces/knight-b.svg";
+  import blackBishopSrc from "./pieces/bishop-b.svg";
 
-  import whitePawn from "./pieces/pawn-w.svg";
-  import whiteKing from "./pieces/king-w.svg";
-  import whiteQueen from "./pieces/queen-w.svg";
-  import whiteRook from "./pieces/rook-w.svg";
-  import whiteKnight from "./pieces/knight-w.svg";
-  import whiteBishop from "./pieces/bishop-w.svg";
-  import { coordToNum, mapToNumber ,mapToString,numToCoord, stringToMap } from "./lib/helper";
-  import moveDot from "./pieces/blackDot.png";
+  import whitePawnSrc from "./pieces/pawn-w.svg";
+  import whiteKingSrc from "./pieces/king-w.svg";
+  import whiteQueenSrc from "./pieces/queen-w.svg";
+  import whiteRookSrc from "./pieces/rook-w.svg";
+  import whiteKnightSrc from "./pieces/knight-w.svg";
+  import whiteBishopSrc from "./pieces/bishop-w.svg";
+  import { coordToNum, mapToNumber, mapToString, numToCoord, stringToMap, numberToMap } from "./lib/helper";
+  import moveDotSrc from "./pieces/blackDot.png";
+
+  // Preload images
+  const blackPawn = new Image();
+  blackPawn.src = blackPawnSrc;
+  const blackKing = new Image();
+  blackKing.src = blackKingSrc;
+  const blackQueen = new Image();
+  blackQueen.src = blackQueenSrc;
+  const blackRook = new Image();
+  blackRook.src = blackRookSrc;
+  const blackKnight = new Image();
+  blackKnight.src = blackKnightSrc;
+  const blackBishop = new Image();
+  blackBishop.src = blackBishopSrc;
+
+  const whitePawn = new Image();
+  whitePawn.src = whitePawnSrc;
+  const whiteKing = new Image();
+  whiteKing.src = whiteKingSrc;
+  const whiteQueen = new Image();
+  whiteQueen.src = whiteQueenSrc;
+  const whiteRook = new Image();
+  whiteRook.src = whiteRookSrc;
+  const whiteKnight = new Image();
+  whiteKnight.src = whiteKnightSrc;
+  const whiteBishop = new Image();
+  whiteBishop.src = whiteBishopSrc;
+
+  const moveDot = new Image();
+  moveDot.src = moveDotSrc;
 
   let board: bigint[] = [
     0b1111111111111111000000000000000000000000000000000000000000000000n, // All Black Pieces
@@ -31,7 +61,7 @@
     0b0000000000000000000000000000000000000000000000000000000001000010n, // White Knight
     0b0000000000000000000000000000000000000000000000000000000000100100n, // White Bishop
     0b0000000000000000000000000000000000000000000000001111111100000000n, // White Pawn
-    0b000000000000000011110n // The Special One 
+    0b000000000000000011111n // The Special One 
   ];
 
   let moves: bigint = 0b0n;
@@ -44,19 +74,19 @@
   let cursorX: number = 0, cursorY: number = 0;
   let isDragging = false;
   let a: number = 0;
-  let cstart = "a1";
-  let cend = "a1";
-  let location = "a1";
-  let helper = "";
+  let cstart = 0;
+  let cend = 0;
+  let location = 0;
+  let helper = 0;
   let Clicked = false;
   let assigner: number[][] = [];
-  let clickStart:string;
-  let dragged: string;
-  let dragImg:CanvasImageSource
+  let clickStart: number;
+  let dragImg: HTMLImageElement;
   width = window.innerWidth;
   height = window.innerHeight;
   let side = Math.min(width, height) * 0.8;
-  let hideNow:number;
+  let hideNow: number;
+
   function handleMouseMove(event: MouseEvent) {
     const rect = canvas.getBoundingClientRect();
     cursorX = event.clientX - rect.left;
@@ -65,12 +95,10 @@
     if (isDragging) {
       requestAnimationFrame(() => {
         dragCtx.clearRect(0, 0, dragCanvas.width, dragCanvas.height);
-          dragCtx.drawImage(dragImg, cursorX - side / 16, cursorY - side / 16, side / 8, side / 8);
+        dragCtx.drawImage(dragImg, cursorX - side / 16, cursorY - side / 16, side / 8, side / 8);
       });
-    }
-    else
-    {
-      dragCtx.clearRect(0,0,width,height)
+    } else {
+      dragCtx.clearRect(0, 0, width, height);
     }
   }
 
@@ -94,12 +122,12 @@
 
   function directions() {
     const dim = side / 8;
-    // To help display
     for (let i = 0; i < 8; i++) {
       for (let j = 0; j < 8; j++) {
-        assigner.push([dim * j, dim * i]);
+        assigner.push([Math.trunc(dim * j), Math.trunc(dim * i)]);
       }
     }
+    console.log(assigner);
   }
 
   function identifySquare() {
@@ -107,11 +135,10 @@
     let a = Math.trunc(1 + cursorY / dim);
     let b = Math.trunc(1 + cursorX / dim);
     if (a > 0 && a < 9 && b > 0 && b < 9)
-      location = String.fromCharCode(105 - a) + "" + b;
+      location = 8 * (a - 1) + b - 1;
   }
 
   function makeBoxes() {
-    // The side of one box is side / 8
     const dim = side / 8;
     let filler = '#E9EDCC';
     let [xcoord, ycoord] = [0, 0];
@@ -131,120 +158,96 @@
 
   function dragStart() {
     isDragging = true;
-    showMoves()
-  dragImg = new Image();
-   selectedImage(location)
-   dragImg.src = dragged;
+    showMoves();
+    dragImg = new Image();
+    selectedImage(location);
     makeBoxes();
     displayNormal();
     cstart = location;
   }
 
   function dragEnd() {
-    //We want to check if it has been dragged to a valid move
-    if(cstart!=location&&moves&stringToMap(location))
-    {
-      let start = stringToMap(cstart)
-      let end = stringToMap(location)
-      for(let i = 2;i<=13;i++)
-      {
-        if(start&board[i])
-        {
-          board[i] = start^board[i]//Remove from prev state
-          board[i] = end | board[i]//Add new state
-          moves = 0n
-          makeBoxes()
-          displayNormal()
+    if (cstart != location && moves & numberToMap(location)) {
+      let start = numberToMap(cstart);
+      let end = numberToMap(location);
+      for (let i = 2; i <= 13; i++) {
+        if (start & board[i]) {
+          board[i] = start ^ board[i];
+          board[i] = end | board[i];
+          moves = 0n;
+          makeBoxes();
+          displayNormal();
           break;
         }
       }
     }
     dragCtx.clearRect(0, 0, dragCanvas.width, dragCanvas.height);
     isDragging = false;
-    dragged = ""
-    hideNow = 65
-    
-
-    displayNormal()
+    hideNow = 65;
+    displayNormal();
     cend = location;
-    handleClick(); // Handle the click action after drag ends
+    handleClick();
   }
 
   function handleClick() {
-    if(cstart===cend)
-    {
-    if(!Clicked)
-      {
-        Clicked = true
-        clickStart = location
-        cstart = location
-        
-        showMoves()
-      }
-      else
-      {
-        Clicked = false
-        if(clickStart!=location)
-        {
-          if(moves&stringToMap(location))
-    {
-      let start = stringToMap(clickStart)
-      let end = stringToMap(location)
-      for(let i = 2;i<=13;i++)
-      {
-        if(start&board[i])
-        {
-          board[i] = start^board[i]//Remove from prev state
-          board[i] = end | board[i]//Add new state
-          break;
+    if (cstart === cend) {
+      if (!Clicked) {
+        Clicked = true;
+        clickStart = location;
+        cstart = location;
+        showMoves();
+      } else {
+        Clicked = false;
+        if (clickStart != location) {
+          if (moves & numberToMap(location)) {
+            let start = numberToMap(clickStart);
+            let end = numberToMap(location);
+            for (let i = 2; i <= 13; i++) {
+              if (start & board[i]) {
+                board[i] = start ^ board[i];
+                board[i] = end | board[i];
+                break;
+              }
+            }
+          }
         }
+        moves = 0n;
       }
     }
-        }
-        moves = 0n
-        
-      }}
-      makeBoxes()
-      displayNormal()
+    makeBoxes();
+    displayNormal();
   }
-  function showMoves()
-  {
-    moves = 0b0000000000000000111111110000000000000000000000000000000000000000n
+
+  function showMoves() {
+    moves = 0b0000000000000000111111110000000000000000000000000000000000000000n;
   }
+
   function display() {
-    // We have to display each one by one
-    // We have this global function that can be used to display each piece
-    // Let's place the black king
     setTimeout(() => {
       displayType(mapToNumber(board[2])[0], blackKing);
       displayType(mapToNumber(board[8])[0], whiteKing);
     }, 1100);
 
-    // To display the pawns
     setTimeout(() => {
       mapToNumber(board[7]).map((x) => { displayType(x, blackPawn); });
       mapToNumber(board[13]).map((x) => { displayType(x, whitePawn); });
     }, 100);
 
-    // To display the queens
     setTimeout(() => {
       displayType(mapToNumber(board[3])[0], blackQueen);
       displayType(mapToNumber(board[9])[0], whiteQueen);
     }, 900);
 
-    // To display the rooks
     setTimeout(() => {
       mapToNumber(board[4]).map((x) => { displayType(x, blackRook); });
       mapToNumber(board[10]).map((x) => { displayType(x, whiteRook); });
     }, 300);
 
-    // To display the knights
     setTimeout(() => {
       mapToNumber(board[5]).map((x) => { displayType(x, blackKnight); });
       mapToNumber(board[11]).map((x) => { displayType(x, whiteKnight); });
     }, 500);
 
-    // To display the bishops
     setTimeout(() => {
       mapToNumber(board[6]).map((x) => { displayType(x, blackBishop); });
       mapToNumber(board[12]).map((x) => { displayType(x, whiteBishop); });
@@ -252,107 +255,89 @@
   }
 
   function displayNormal() {
-    // We have to display each one by one
-    // We have this global function that can be used to display each piece
-    // Let's place the black king
     displayType(mapToNumber(board[2])[0], blackKing);
     displayType(mapToNumber(board[8])[0], whiteKing);
 
-    // To display the pawns
     mapToNumber(board[7]).map((x) => { displayType(x, blackPawn); });
     mapToNumber(board[13]).map((x) => { displayType(x, whitePawn); });
 
-    // To display the queens
     displayType(mapToNumber(board[3])[0], blackQueen);
     displayType(mapToNumber(board[9])[0], whiteQueen);
 
-    // To display the rooks
     mapToNumber(board[4]).map((x) => { displayType(x, blackRook); });
     mapToNumber(board[10]).map((x) => { displayType(x, whiteRook); });
 
-    // To display the knights
     mapToNumber(board[5]).map((x) => { displayType(x, blackKnight); });
     mapToNumber(board[11]).map((x) => { displayType(x, whiteKnight); });
 
-    // To display the bishops
     mapToNumber(board[6]).map((x) => { displayType(x, blackBishop); });
     mapToNumber(board[12]).map((x) => { displayType(x, whiteBishop); });
 
     mapToNumber(moves).map((x) => { displayType(x, moveDot); });
   }
 
-  function displayType(coord: number, imgsrc: any) {
-    
-    if(coord!=64-hideNow)
-    {
-      if(imgsrc == moveDot)
-      {
+  function displayType(coord: number, img: HTMLImageElement) {
+    if (coord != hideNow) {
+      helper = coord;
+      if (img === moveDot) {
         let [x, y] = assigner[coord];
-        ctx.beginPath()
-        ctx.arc(x+side/16,y+side/16,side/30,0,2*Math.PI)
-        ctx.fillStyle = ("#000000")
-        ctx.fill()
-        ctx.beginPath()
-        ctx.arc(x+side/16,y+side/16,side/40,0,2*Math.PI)
-        ctx.fillStyle = ("#ffffff")
-        ctx.fill()
+        ctx.beginPath();
+        ctx.arc(x + side / 16, y + side / 16, side / 30, 0, 2 * Math.PI);
+        ctx.fillStyle = ("#000000");
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x + side / 16, y + side / 16, side / 40, 0, 2 * Math.PI);
+        ctx.fillStyle = ("#ffffff");
+        ctx.fill();
+      } else {
+        let [x, y] = assigner[coord];
+        ctx.drawImage(img, x, y, side / 8, side / 8);
       }
-      else{
-    const image = new Image();
-    image.src = imgsrc;
-    image.onload = () => {
-      let [x, y] = assigner[coord];
-      ctx.drawImage(image, x, y, side / 8, side / 8);
-    }};
+    }
   }
-  }
-  function selectedImage(coord:string)
-  {
-    let clickLocation = stringToMap(coord)
-    
-    for(let i = 2;i<=13;i++)
-    {
-      if(clickLocation&board[i])
-      {
-        hideNow = coordToNum(coord)
-        switch(i)
-        {
+
+  function selectedImage(coord: number) {
+    let clickLocation = numberToMap(coord);
+    for (let i = 2; i <= 13; i++) {
+      if (clickLocation & board[i]) {
+        hideNow = coord;
+        switch (i) {
           case 2:
-            dragged = blackKing
-          break;
+            dragImg = blackKing;
+            break;
           case 3:
-            dragged = blackQueen
+            dragImg = blackQueen;
             break;
           case 4:
-            dragged = blackRook;
-          break;
+            dragImg = blackRook;
+            break;
           case 5:
-            dragged = blackKnight;
-          break;
+            dragImg = blackKnight;
+            break;
           case 6:
-            dragged = blackBishop;
-          break;
+            dragImg = blackBishop;
+            break;
           case 7:
-            dragged = blackPawn;
-          break;
+            dragImg = blackPawn;
+            break;
           case 8:
-            dragged = whiteKing
-          break;
+            dragImg = whiteKing;
+            break;
           case 9:
-            dragged = whiteQueen
+            dragImg = whiteQueen;
             break;
           case 10:
-            dragged = whiteRook;
-          break;
+            dragImg = whiteRook;
+            break;
           case 11:
-            dragged = whiteKnight;
-          break;
+            dragImg = whiteKnight;
+            break;
           case 12:
-            dragged = whiteBishop;
-          break;
+            dragImg = whiteBishop;
+            break;
           case 13:
-            dragged = whitePawn;
-          break;
+            dragImg = whitePawn;
+            break;
         }
       }
     }
@@ -362,10 +347,10 @@
 <div class="flex flex-col items-center justify-center h-lvh">
   <canvas bind:this={canvas} class="main-canvas" on:mousemove={handleMouseMove} on:mousedown={dragStart} on:mouseup={dragEnd} on:mouseleave={dragEnd}></canvas>
   <canvas bind:this={dragCanvas} class="drag-canvas"></canvas>
-  <div>{location}</div>
-  <div>{helper}</div>
 </div>
-<img src={blackPawn} alt="Pawn"/>
+<div>{assigner}</div>
+<div>{hideNow}</div>
+<img src={blackPawnSrc} alt="Pawn"/>
 
 <style>
   .main-canvas {

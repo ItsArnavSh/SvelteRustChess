@@ -1,6 +1,6 @@
 
 
-export function mapToNumber(bitmap:bigint)
+export function mapToNumber(bitmap:bigint): number[]
 {
     //We ware given a map and we should return an array of coordinates
     let coordinate:number[]=[];
@@ -12,6 +12,24 @@ export function mapToNumber(bitmap:bigint)
     }
     return coordinate.map((x)=>64-x);
 }
+export function numberToMap(n: number | number[]): bigint {
+    // This function will take a number or an array of numbers, and return 1 shifted by that number(s).
+    // e.g., 3 returns 100, [3, 5] returns 10100
+    if (typeof n === 'number') {
+        n = 64- n - 1;
+        return (1n << BigInt(n));
+    } else if (Array.isArray(n)) {
+        let k = 0n;
+        for (let i = 0; i < n.length; i++) {
+            n[i]--;
+            k = k | (1n << BigInt(n[i]));
+        }
+        return k;
+    } else {
+        throw new Error('Invalid argument type, expected number or array');
+    }
+}
+
 export function mapToString(bitmap:bigint)
 {
     if(bitmap==null)

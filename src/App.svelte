@@ -6,7 +6,7 @@
   import blackRookSrc from "./pieces/rook-b.svg";
   import blackKnightSrc from "./pieces/knight-b.svg";
   import blackBishopSrc from "./pieces/bishop-b.svg";
-
+  import {get_moves} from "../pkg/chess"
   import whitePawnSrc from "./pieces/pawn-w.svg";
   import whiteKingSrc from "./pieces/king-w.svg";
   import whiteQueenSrc from "./pieces/queen-w.svg";
@@ -61,7 +61,7 @@
     0b0000000000000000000000000000000000000000000000000000000001000010n, // White Knight
     0b0000000000000000000000000000000000000000000000000000000000100100n, // White Bishop
     0b0000000000000000000000000000000000000000000000001111111100000000n, // White Pawn
-    0b000000000000000011111n // The Special One 
+    0b000000000000000011111n, // The Special One 
   ];
 
   let moves: bigint = 0b0n;
@@ -74,19 +74,20 @@
   let cursorX: number = 0, cursorY: number = 0;
   let isDragging = false;
   let a: number = 0;
-  let cstart = 0;
-  let cend = 0;
+  let cstart = 1;
+  let cend = 1;
   let location = 0;
   let helper = 0;
   let Clicked = false;
   let assigner: number[][] = [];
   let clickStart: number;
+  let moves2 = 0n
   let dragImg: HTMLImageElement;
   width = window.innerWidth;
   height = window.innerHeight;
   let side = Math.min(width, height) * 0.8;
   let hideNow: number;
-
+  let selected :number;
   function handleMouseMove(event: MouseEvent) {
     const rect = canvas.getBoundingClientRect();
     cursorX = event.clientX - rect.left;
@@ -127,7 +128,6 @@
         assigner.push([Math.trunc(dim * j), Math.trunc(dim * i)]);
       }
     }
-    console.log(assigner);
   }
 
   function identifySquare() {
@@ -158,7 +158,7 @@
 
   function dragStart() {
     isDragging = true;
-    showMoves();
+    moves = showMoves(numberToMap(location));
     dragImg = new Image();
     selectedImage(location);
     makeBoxes();
@@ -167,6 +167,7 @@
   }
 
   function dragEnd() {
+    console.log("Drag End")
     if (cstart != location && moves & numberToMap(location)) {
       let start = numberToMap(cstart);
       let end = numberToMap(location);
@@ -186,40 +187,82 @@
     hideNow = 65;
     displayNormal();
     cend = location;
-    handleClick();
+    moves = 0n;
   }
 
   function handleClick() {
-    if (cstart === cend) {
-      if (!Clicked) {
-        Clicked = true;
-        clickStart = location;
-        cstart = location;
-        showMoves();
-      } else {
-        Clicked = false;
-        if (clickStart != location) {
-          if (moves & numberToMap(location)) {
-            let start = numberToMap(clickStart);
-            let end = numberToMap(location);
-            for (let i = 2; i <= 13; i++) {
-              if (start & board[i]) {
-                board[i] = start ^ board[i];
-                board[i] = end | board[i];
-                break;
-              }
-            }
-          }
-        }
-        moves = 0n;
-      }
-    }
-    makeBoxes();
-    displayNormal();
+  console.log("Clicked");
+
+  if (isDragging) {
+    // If a drag is in progress, do nothing on click
+    return;
   }
 
-  function showMoves() {
-    moves = 0b0000000000000000111111110000000000000000000000000000000000000000n;
+  if (cstart === cend) {
+    // Single click on the same location
+    if (moves2 !== 0n) {
+      selected = -1
+      // If there are moves available, handle the click as move selection
+      if (moves2 & numberToMap(location)) {
+        // Check if the clicked location is a valid move
+        let start = numberToMap(clickStart);
+        let end = numberToMap(location);
+        for (let i = 2; i <= 13; i++) {
+          if (start & board[i]) {
+            // Update the board state for the selected piece
+            board[i] = start ^ board[i];
+            board[i] = end | board[i];
+            break;
+          }
+        }
+        moves2 = 0n; // Clear moves after executing the move
+      }
+    } else {
+      // If no moves are available, handle the click as initial piece selection
+      clickStart = location;
+      cstart = location;
+      selected = location
+      //selectedImage(location); // Update selected image state if necessary
+      moves2 = showMoves(numberToMap(location)); // Show available moves for the selected piece
+    }
+  }
+  else
+  {
+    selected = -1
+    moves2 = 0n
+  }
+
+  makeBoxes(); // Redraw the board
+  displayNormal(); // Display pieces according to the updated board state
+}
+
+
+
+  function showMoves(clickMap:bigint):bigint {
+    if(validClick(clickMap)!=-1 && BigInt(turnDetect(clickMap))==(board[14]&1n))
+    {
+        console.log("Valid Click")
+        let result:bigint = processSingleBigInt(get_moves(breakToSend()))
+        return result;
+    }
+    console.log("Not a valid click")
+    return 0n
+  }
+  //We need to break the bigints into two
+  function breakToSend()
+  {
+    let storage:number[] = []
+    for(let i = 0;i<14;i++)
+    {
+      storage.push(Number(board[i]>>32n))//Upper 32
+      storage.push(Number(board[i]&0b11111111111111111111111111111111n))//Lower 32
+    }
+    let arr:Int32Array = new Int32Array(storage)
+    return(arr)
+  }
+  function processSingleBigInt(bitarray:Int32Array)
+  {
+    return (BigInt(bitarray[0])<<32n)+BigInt(bitarray[1]);
   }
 
   function display() {
@@ -274,6 +317,7 @@
     mapToNumber(board[12]).map((x) => { displayType(x, whiteBishop); });
 
     mapToNumber(moves).map((x) => { displayType(x, moveDot); });
+    mapToNumber(moves2).map((x) => { displayType(x, moveDot); });
   }
 
   function displayType(coord: number, img: HTMLImageElement) {
@@ -291,9 +335,16 @@
         ctx.fill();
       } else {
         let [x, y] = assigner[coord];
+        if(coord == selected)
+    {
+      ctx.fillStyle = '#FFFF00'
+      ctx.fillRect(x,y,side/8,side/8)
+    }
+        
         ctx.drawImage(img, x, y, side / 8, side / 8);
       }
     }
+    
   }
 
   function selectedImage(coord: number) {
@@ -342,10 +393,26 @@
       }
     }
   }
+  //Now lets get started with the actual game
+  function validClick(clickMap:bigint):number
+  {
+    for(let i = 2;i<14;i++)
+    {
+      if(board[i]&clickMap)
+        return i
+    }
+    return -1
+  }
+  function turnDetect(clickMap:bigint):number
+  {
+    if(clickMap&board[0])
+      return 0
+    return 1
+  }
 </script>
 
 <div class="flex flex-col items-center justify-center h-lvh">
-  <canvas bind:this={canvas} class="main-canvas" on:mousemove={handleMouseMove} on:mousedown={dragStart} on:mouseup={dragEnd} on:mouseleave={dragEnd}></canvas>
+  <canvas bind:this={canvas} class="main-canvas" on:mousemove={handleMouseMove} on:click={handleClick} on:mousedown={dragStart} on:mouseup={dragEnd} on:mouseleave={directions}></canvas>
   <canvas bind:this={dragCanvas} class="drag-canvas"></canvas>
 </div>
 <div>{assigner}</div>

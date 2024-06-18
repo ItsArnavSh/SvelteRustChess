@@ -171,6 +171,7 @@
     if (cstart != location && moves & numberToMap(location)) {
       let start = numberToMap(cstart);
       let end = numberToMap(location);
+      
       for (let i = 2; i <= 13; i++) {
         if (start & board[i]) {
           board[i] = start ^ board[i];
@@ -179,6 +180,23 @@
           makeBoxes();
           displayNormal();
           break;
+        }
+      }
+      for(let i= 0;i<2;i++)
+      {
+        if (start & board[i]) {
+          board[i] = start ^ board[i];
+          board[i] = end | board[i];
+          board[14]=board[14]^0b1n;
+          board[Number(board[14]&1n)?1:0]&=~end;
+          for(let j = 2;j<=7;j++)
+          {
+            board[j]&=board[0]
+          }
+          for(let j = 8;j<=13;j++)
+          {
+            board[j]&=board[1]
+          }
         }
       }
     }
@@ -207,6 +225,7 @@
         // Check if the clicked location is a valid move
         let start = numberToMap(clickStart);
         let end = numberToMap(location);
+        
         for (let i = 2; i <= 13; i++) {
           if (start & board[i]) {
             // Update the board state for the selected piece
@@ -215,6 +234,23 @@
             break;
           }
         }
+        for(let i= 0;i<2;i++)
+      {
+        if (start & board[i]) {
+          board[i] = start ^ board[i];
+          board[i] = end | board[i];
+          board[14]=board[14]^0b1n;
+          board[Number(board[14]&1n)?1:0]&=~end;
+          for(let j = 2;j<=7;j++)
+          {
+            board[j]&=board[0]
+          }
+          for(let j = 8;j<=13;j++)
+          {
+            board[j]&=board[1]
+          }
+        }
+      }
         moves2 = 0n; // Clear moves after executing the move
       }
     } else {
@@ -242,26 +278,30 @@
     if(validClick(clickMap)!=-1 && BigInt(turnDetect(clickMap))==(board[14]&1n))
     {
         console.log("Valid Click")
-        let result:bigint = processSingleBigInt(get_moves(breakToSend()))
+        let result:bigint = processSingleBigInt(get_moves(breakToSend(clickMap)))
         return result;
     }
     console.log("Not a valid click")
     return 0n
   }
   //We need to break the bigints into two
-  function breakToSend()
+  function breakToSend(clickMap:bigint)
   {
     let storage:number[] = []
-    for(let i = 0;i<14;i++)
+    for(let i = 0;i<=14;i++)
     {
       storage.push(Number(board[i]>>32n))//Upper 32
       storage.push(Number(board[i]&0b11111111111111111111111111111111n))//Lower 32
     }
-    let arr:Int32Array = new Int32Array(storage)
+    storage.push(Number(clickMap>>32n))
+    storage.push(Number(clickMap&0b11111111111111111111111111111111n))
+    let arr:Uint32Array = new Uint32Array(storage)
+    console.log(arr.length)
     return(arr)
   }
-  function processSingleBigInt(bitarray:Int32Array)
+  function processSingleBigInt(bitarray:Uint32Array)
   {
+    console.log((BigInt(bitarray[0])<<32n)+BigInt(bitarray[1]))
     return (BigInt(bitarray[0])<<32n)+BigInt(bitarray[1]);
   }
 
@@ -277,8 +317,8 @@
     }, 100);
 
     setTimeout(() => {
-      displayType(mapToNumber(board[3])[0], blackQueen);
-      displayType(mapToNumber(board[9])[0], whiteQueen);
+      mapToNumber(board[3]).map((x) => { displayType(x, blackQueen); });
+    mapToNumber(board[9]).map((x) => { displayType(x, whiteQueen); });
     }, 900);
 
     setTimeout(() => {
@@ -304,8 +344,8 @@
     mapToNumber(board[7]).map((x) => { displayType(x, blackPawn); });
     mapToNumber(board[13]).map((x) => { displayType(x, whitePawn); });
 
-    displayType(mapToNumber(board[3])[0], blackQueen);
-    displayType(mapToNumber(board[9])[0], whiteQueen);
+    mapToNumber(board[3]).map((x) => { displayType(x, blackQueen); });
+    mapToNumber(board[9]).map((x) => { displayType(x, whiteQueen); });
 
     mapToNumber(board[4]).map((x) => { displayType(x, blackRook); });
     mapToNumber(board[10]).map((x) => { displayType(x, whiteRook); });
